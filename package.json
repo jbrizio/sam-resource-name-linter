@@ -1,0 +1,30 @@
+{
+  "description": "Tool to enforce naming conventions for AWS SAM resources",
+  "bin": { "sam-resource-name-linter": "node src/index.mjs" },
+  "keywords": ["aws", "sam", "linter", "cloudformation"],
+  "name": "sam-resource-name-linter",
+  "author": "Jonathan Brizio",
+  "main": "src/index.mjs",
+  "version": "1.0.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jbrizio/sam-resource-name-linter.git"
+  },
+  "type": "module",
+  "scripts": {
+    "test": "jest",
+    "coverage": "jest --coverage"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@babel/preset-env": "^7.26.9",
+    "babel-jest": "^29.7.0",
+    "jest": "^29.7.0"
+  }
+}
