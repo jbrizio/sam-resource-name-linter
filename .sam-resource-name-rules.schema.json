@@ -1,36 +1,45 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "SAM Resource Name Linter Rules",
-    "description": "Schema for defining naming rules in the SAM Resource Name Linter",
-    "type": "object",
-    "patternProperties": {
-        "^AWS::[a-zA-Z0-9]+::[a-zA-Z0-9]+$": {
-            "type": "object",
-            "properties": {
-                "propertyName": {
-                    "type": "string",
-                    "description": "Name of the property to be validated."
-                },
-                "pattern": {
-                    "type": "string",
-                    "description": "Regex pattern defining the full naming convention."
-                },
-                "excludedWords": {
-                    "type": "array",
-                    "description": "Words that should not appear in the name.",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "maxLength": {
-                    "type": "integer",
-                    "description": "Maximum length of the name."
-                }
-            },
-            "required": [
-                "pattern",
-                "propertyName"
-            ]
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SAM Resource Name Linter Rules",
+  "description": "Schema for defining naming rules in the SAM Resource Name Linter",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["rules"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Optional JSON Schema URL for editor validation."
+    },
+    "rules": {
+      "type": "object",
+      "description": "Naming rules keyed by CloudFormation or SAM resource type.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["pattern", "propertyName"],
+        "properties": {
+          "propertyName": {
+            "type": "string",
+            "description": "Name of the resource property to validate (for example FunctionName or BucketName)."
+          },
+          "pattern": {
+            "type": "string",
+            "description": "Regular expression the property value must match."
+          },
+          "excludedWords": {
+            "type": "array",
+            "description": "Substrings that must not appear in the name (matched case-insensitively).",
+            "items": {
+              "type": "string"
+            }
+          },
+          "maxLength": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Maximum length of the property value."
+          }
         }
+      }
     }
+  }
 }
