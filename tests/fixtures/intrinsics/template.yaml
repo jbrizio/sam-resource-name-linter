@@ -1,0 +1,23 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  JoinedFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Join ['-', [my, valid, function]]
+      Handler: index.handler
+      Runtime: nodejs20.x
+  SubFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub
+        - '${Prefix}-fn'
+        - Prefix: myapp
+      Handler: index.handler
+      Runtime: nodejs20.x
+  IfFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !If [UseName, my-valid-function, other-name]
+      Handler: index.handler
+      Runtime: nodejs20.x

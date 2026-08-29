@@ -1,74 +1,159 @@
 # SAM Resource Name Linter
 
-This package helps enforce naming conventions for AWS SAM resources. It reads a SAM template and validates resource names against a set of configurable rules.
-
-## Why This Tool?
-Maintaining consistent naming conventions across multiple AWS SAM projects is crucial for readability, maintainability, and team collaboration. This tool helps enforce a single standard, preventing inconsistencies and improving overall code quality. The benefit is amplified by its minimal external dependencies, ensuring ease of integration and reducing potential conflicts.
+CLI that checks **resource property values** in an AWS SAM template (for example `FunctionName` or `BucketName`) against rules you define. It does not validate CloudFormation logical IDs (the keys under `Resources`).
 
 ## Installation
 
+Install as a development dependency in your SAM project:
+
 ```bash
-npm install sam-resource-name-linter
+npm install --save-dev sam-resource-name-linter
 ```
 
-## Usage
+You can also run it without adding a dependency:
 
-1. **Create the configuration file:** After installing the package in your repository with the previous command, you should create a new file called named `.sam-resource-name-rules.json` in the root directory of your SAM project.
+```bash
+npx sam-resource-name-linter
+```
 
-2. **Configure the linter:** Before running the linter, personalize your configuration file (`.sam-resource-name-rules.json`) by defining the resource naming rules that suit your project's needs.
+## Quick start
 
-3. **Run the linter:** Execute the linter using the following command:
+1. Add `.sam-resource-name-rules.json` at the root of your SAM project (next to `template.yaml` or `template.yml`).
+2. Add an npm script:
 
-   ```bash
-   sam-resource-name-linter
-   ```
+```json
+{
+  "scripts": {
+    "lint:resources": "sam-resource-name-linter"
+  }
+}
+```
 
-   Integrate the linter into your workflow by adding it to your project's npm scripts. This will automatically enforce your defined resource naming standards. The linter defaults to `.sam-resource-name-rules.json`
+3. Run `npm run lint:resources`.
 
-4. **Review the results:** The linter will output a message indicating whether the validation passed or failed. If it failed, it will list the specific errors encountered.
+The linter looks for `template.yaml`, then `template.yml`, in the current working directory. It reads `.sam-resource-name-rules.json` unless you pass another rules file.
 
-## Configuration File Format
+## Configuration
 
-The configuration file (`.sam-resource-name-rules.json`) is a JSON file with the following structure:
+Example `.sam-resource-name-rules.json`:
 
 ```json
 {
   "$schema": "node_modules/sam-resource-name-linter/.sam-resource-name-rules.schema.json",
   "rules": {
     "AWS::Serverless::Function": {
-      "maxLength": 63,
+      "maxLength": 64,
       "pattern": "^[a-z][a-z0-9-]*$",
       "excludedWords": ["test", "dev"],
       "propertyName": "FunctionName"
     },
-    "AWS::Serverless::Api": {
+    "AWS::S3::Bucket": {
       "maxLength": 63,
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "propertyName": "BucketName"
+    },
+    "AWS::Serverless::Api": {
+      "maxLength": 128,
       "pattern": "^[a-z][a-z0-9-]*$",
       "propertyName": "Name"
     }
-    // Add rules for other resource types as needed
   }
 }
 ```
 
-* `"rules"`: An object containing rules for different resource types.
-* `<resource-type>`: The AWS resource type (e.g., `"AWS::Serverless::Function"`).
-* `"maxLength"`: The maximum allowed length of the resource name (optional).
-* `"pattern"`: A regular expression pattern that the resource name must match (required).
-* `"excludedWords"`: An array of words that are not allowed in the resource name (optional).
-* `"propertyName"`: Name of the resource property to be validated (required).
+| Field | Required | Description |
+| --- | --- | --- |
+| `rules` | yes | Map of CloudFormation/SAM resource types to rule objects. |
+| `propertyName` | yes | Property under `Resources.<LogicalId>.Properties` to check. |
+| `pattern` | yes | Regular expression the property value must match. |
+| `maxLength` | no | Maximum length of the property value. |
+| `excludedWords` | no | Substrings that must not appear in the value. Matching is case-insensitive and **substring-based** (`"test"` also matches `contest`). Prefer lowercase words. |
+| `$schema` | no | Points at the packaged JSON Schema so editors can validate the file. |
 
-### Importance of `"$schema"`
+Only resource types listed under `rules` are checked. Other types are ignored.
 
-Including the `"$schema"` property in your `.sam-resource-name-rules.json` file is highly recommended. This property points to a JSON Schema definition that describes the structure and data types expected in your configuration file. Using a JSON Schema offers several key benefits:
+Names that are CloudFormation intrinsics rather than a literal string (for example a sequence `!Sub`) are reported as a missing string property. Static `!Join` values that resolve to a string are validated as that string.
 
-* **Validation:** It allows for automated validation of your configuration file, ensuring it conforms to the expected format.  This helps prevent errors and inconsistencies in your rules.
-* **IDE Support:** Many IDEs and code editors leverage JSON Schema to provide features like autocompletion, linting, and error highlighting, making it easier to write and maintain your configuration files.
-* **Maintainability:** The schema acts as a central source of truth for your configuration file's structure, improving maintainability and reducing the risk of errors as your rules evolve.
+## CLI
+
+```text
+sam-resource-name-linter [rules-file]
+sam-resource-name-linter [options]
+```
+
+| Option | Description |
+| --- | --- |
+| `[rules-file]` | Positional path or `https://` URL for the rules file. |
+| `-c`, `--config <path\|url>` | Same as the positional rules file. |
+| `-t`, `--template <path>` | SAM template path (useful when the file is not `template.yaml` / `template.yml` in the current directory). |
+| `-h`, `--help` | Print usage. |
+
+### Examples
+
+```bash
+sam-resource-name-linter
+sam-resource-name-linter .my-custom-rules.json
+sam-resource-name-linter --config .my-custom-rules.json
+sam-resource-name-linter --template sam/app-template.yaml
+sam-resource-name-linter --config https://example.com/org-sam-resource-name-rules.json
+```
+
+Remote rules are fetched over HTTPS only (10 second timeout).
+
+## Output and exit codes
+
+Passing run:
+
+```text
+✅ Resource naming validation passed successfully.
+```
+
+Failing run:
+
+```text
+❌ Validation failed with the following errors:
+- Resource "MyFunction" does not match pattern "^[a-z][a-z0-9-]*$".
+- Resource "MyFunction" contains an excluded word.
+```
+
+| Code | Meaning |
+| --- | --- |
+| `0` | Validation passed (or `--help`). |
+| `1` | One or more naming violations. |
+| `2` | Usage error, missing files, or parse/IO failure. |
+
+Use the exit code in CI so a failed naming check fails the job.
+
+### GitHub Actions
+
+```yaml
+name: Lint SAM resource names
+on: [push, pull_request]
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npx sam-resource-name-linter
+```
+
+## Programmatic use
+
+```js
+import { performValidation, parseSamTemplate, readRules } from 'sam-resource-name-linter';
+
+const rules = await readRules('.sam-resource-name-rules.json');
+const template = parseSamTemplate(yamlString);
+const errors = performValidation(rules, template);
+```
 
 ## Contributing
 
-Contributions are welcome! Please open an issue or submit a pull request.
+Contributions are welcome. Open an issue or submit a pull request.
 
 ## License
 

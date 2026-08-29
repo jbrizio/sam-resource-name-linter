@@ -1,0 +1,9 @@
+{
+  "rules": {
+    "AWS::Serverless::Function": {
+      "maxLength": 64,
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "propertyName": "FunctionName"
+    }
+  }
+}

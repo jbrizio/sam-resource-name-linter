@@ -1,0 +1,16 @@
+{
+  "$schema": "../../../.sam-resource-name-rules.schema.json",
+  "rules": {
+    "AWS::Serverless::Function": {
+      "maxLength": 64,
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "excludedWords": ["test", "dev"],
+      "propertyName": "FunctionName"
+    },
+    "AWS::S3::Bucket": {
+      "maxLength": 63,
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "propertyName": "BucketName"
+    }
+  }
+}
